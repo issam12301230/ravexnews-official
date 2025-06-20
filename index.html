@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<!DOCTYPE html><html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,9 +7,13 @@
     body { font-family: 'Arial', sans-serif; background: #fff; color: #000; padding: 20px; }
     h1 { color: #228B22; text-align: center; }
     #news-container { margin-top: 30px; }
-    .news-item { border: 1px solid #ccc; padding: 15px; margin-bottom: 15px; border-radius: 10px; background: #f9f9f9; }
+    .news-item { border: 1px solid #ccc; padding: 15px; margin-bottom: 15px; border-radius: 10px; background: #f9f9f9; position: relative; }
     .news-title { font-size: 1.2em; font-weight: bold; color: #228B22; }
     .news-content { margin-top: 10px; line-height: 1.6; }
+    .news-meta { margin-top: 10px; font-size: 0.9em; color: #666; }
+    .news-actions { margin-top: 10px; }
+    .news-actions button, .news-actions a { margin-left: 10px; background: #228B22; color: white; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; text-decoration: none; font-size: 0.9em; }
+    .news-actions button:hover, .news-actions a:hover { background: #1e7a1e; }
     #admin-form { display: none; margin-top: 40px; }
     input, textarea { width: 100%; padding: 10px; margin-top: 10px; font-size: 1em; }
     button { padding: 10px 20px; margin-top: 10px; background: #228B22; color: white; border: none; cursor: pointer; border-radius: 8px; }
@@ -18,25 +21,21 @@
   </style>
 </head>
 <body>
-  <h1>أخبار ريفاكس | Ravex News</h1>
-
-  <div id="news-container"></div>
-
-  <div id="admin-form">
+  <h1>أخبار ريفاكس | Ravex News</h1>  <div id="news-container"></div>  <div id="admin-form">
     <h2>نشر خبر جديد</h2>
     <input type="text" id="news-title" placeholder="عنوان الخبر">
     <textarea id="news-content" rows="6" placeholder="نص الخبر"></textarea>
     <button onclick="addNews()">نشر الخبر</button>
-  </div>
-
-  <script>
+  </div>  <script>
     const password = "Issamdz_ravex_16";
+    let isAdmin = false;
 
     function showAdminForm() {
       const url = new URL(window.location.href);
       if (url.searchParams.get("admin") === "true") {
         const pass = prompt("أدخل كلمة المرور:");
         if (pass === password) {
+          isAdmin = true;
           document.getElementById("admin-form").style.display = "block";
         } else {
           alert("كلمة المرور خاطئة!");
@@ -46,14 +45,29 @@
 
     function loadNews() {
       const news = JSON.parse(localStorage.getItem("ravex_news") || "[]");
+      const views = JSON.parse(localStorage.getItem("ravex_views") || "{}")
       const container = document.getElementById("news-container");
       container.innerHTML = "";
-      news.reverse().forEach(item => {
+      news.reverse().forEach((item, index) => {
+        const id = `news_${index}`;
+        if (!views[id]) views[id] = 0;
+        views[id]++;
+
         const div = document.createElement("div");
         div.className = "news-item";
-        div.innerHTML = `<div class='news-title'>${item.title}</div><div class='news-content'>${item.content}</div>`;
+        div.innerHTML = `
+          <div class='news-title'>${item.title}</div>
+          <div class='news-content'>${item.content}</div>
+          <div class='news-meta'>عدد المشاهدات: ${views[id]} | تاريخ النشر: ${item.date || 'غير معروف'}</div>
+          <div class='news-actions'>
+            <a href="https://wa.me/?text=${encodeURIComponent(item.title + '\n' + item.content)}" target="_blank">مشاركة واتساب</a>
+            <a href="https://www.facebook.com/sharer/sharer.php?u=${location.href}" target="_blank">مشاركة فيسبوك</a>
+            ${isAdmin ? `<button onclick="deleteNews(${news.length - 1 - index})">حذف</button>` : ''}
+          </div>
+        `;
         container.appendChild(div);
       });
+      localStorage.setItem("ravex_views", JSON.stringify(views));
     }
 
     function addNews() {
@@ -61,15 +75,24 @@
       const content = document.getElementById("news-content").value;
       if (!title || !content) return alert("الرجاء ملء جميع الحقول!");
       const news = JSON.parse(localStorage.getItem("ravex_news") || "[]");
-      news.push({ title, content });
+      const now = new Date();
+      const date = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
+      news.push({ title, content, date });
       localStorage.setItem("ravex_news", JSON.stringify(news));
       loadNews();
       document.getElementById("news-title").value = "";
       document.getElementById("news-content").value = "";
     }
 
+    function deleteNews(index) {
+      const news = JSON.parse(localStorage.getItem("ravex_news") || "[]");
+      if (!confirm("هل تريد فعلاً حذف هذا الخبر؟")) return;
+      news.splice(index, 1);
+      localStorage.setItem("ravex_news", JSON.stringify(news));
+      loadNews();
+    }
+
     showAdminForm();
     loadNews();
-  </script>
-</body>
+  </script></body>
 </html>
